@@ -135,8 +135,7 @@ class PurchaseOrder(models.Model):
             new_order.warehouse_id = (
                 dest_company.warehouse_id.company_id == dest_company and
                 dest_company.warehouse_id or False)
-        if 'requested_date' in new_order:
-            new_order.requested_date = self.date_planned
+        new_order.commitment_date = self.date_planned
         return new_order._convert_to_write(new_order._cache)
 
     @api.model
@@ -158,6 +157,9 @@ class PurchaseOrder(models.Model):
         })
         for onchange_method in new_line._onchange_methods['product_id']:
             onchange_method(new_line)
+        new_line.update({
+            'product_uom': purchase_line.product_uom.id,
+        })
         return new_line._convert_to_write(new_line._cache)
 
     @api.multi
