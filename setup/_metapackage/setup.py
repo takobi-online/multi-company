@@ -21,8 +21,10 @@ setuptools.setup(
         'odoo12-addon-crm_lead_tag_multi_company',
         'odoo12-addon-crm_lost_reason_multi_company',
         'odoo12-addon-crm_stage_multi_company',
+        'odoo12-addon-ir_filters_multi_company',
         'odoo12-addon-mail_template_multi_company',
         'odoo12-addon-partner_multi_company',
+        'odoo12-addon-product_intercompany_account',
         'odoo12-addon-product_multi_company',
         'odoo12-addon-product_tax_multicompany_default',
         'odoo12-addon-purchase_sale_inter_company',
@@ -30,6 +32,7 @@ setuptools.setup(
         'odoo12-addon-res_company_category',
         'odoo12-addon-res_company_code',
         'odoo12-addon-res_partner_category_multi_company',
+        'odoo12-addon-res_partner_industry_multi_company',
         'odoo12-addon-stock_move_line_multi_company_security',
         'odoo12-addon-stock_production_lot_multi_company',
         'odoo12-addon-utm_medium_multi_company',
@@ -38,5 +41,6 @@ setuptools.setup(
     classifiers=[
         'Programming Language :: Python',
         'Framework :: Odoo',
+        'Framework :: Odoo :: 12.0',
     ]
 )

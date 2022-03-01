@@ -17,12 +17,44 @@ class SaleOrder(models.Model):
         copy=False,
     )
 
+    def assert_intercompany_prices_equal(self):
+        """Check if the prices of both orders are the same"""
+        unequal_line = []
+        for so in self:
+            for line in so.sudo().order_line:
+                if not line.auto_purchase_line_id:
+                    continue
+                if not so.currency_id.compare_amounts(
+                   line.price_unit, line.auto_purchase_line_id.price_unit):
+                    continue
+                po_line_prod = (
+                    line.product_id.default_code or line.product_id.name)
+                so_line_prod = (
+                    line.auto_purchase_line_id.product_id.default_code
+                    or line.auto_purchase_line_id.product_id.name)
+                unequal_line.append(
+                    _("PO line %s with price %s is not equal to SO "
+                      "line %s with price %s \n"
+                      ) % (po_line_prod,
+                           line.auto_purchase_line_id.price_unit,
+                           so_line_prod,
+                           line.price_unit))
+
+        if unequal_line:
+            raise UserError(
+                _('Error. The following lines do not match on'
+                  ' the remote order: %s') % "\n".join(unequal_line))
+
     @api.multi
     def action_confirm(self):
         for order in self.filtered('auto_purchase_order_id'):
-            for line in order.order_line.sudo():
-                if line.auto_purchase_line_id:
-                    line.auto_purchase_line_id.price_unit = line.price_unit
+            po_company = order.sudo().auto_purchase_order_id.company_id
+            if not po_company.intercompany_overwrite_purchase_price:
+                order.assert_intercompany_prices_equal()
+            else:
+                for line in order.order_line.sudo():
+                    if line.auto_purchase_line_id:
+                        line.auto_purchase_line_id.price_unit = line.price_unit
         res = super(SaleOrder, self).action_confirm()
         for sale_order in self.sudo().filtered(lambda s: not s.auto_purchase_order_id):
             # Do not consider SO created from intercompany PO
@@ -112,9 +144,16 @@ class SaleOrder(models.Model):
         if self.note:
             new_order.notes = self.note
         if 'picking_type_id' in new_order:
-            new_order.picking_type_id = (
-                dest_company.po_picking_type_id.warehouse_id.company_id ==
-                dest_company and dest_company.po_picking_type_id or False)
+            picking_type_dest_owned = self.env['stock.picking.type'].search([
+                ('default_location_dest_id.partner_id', '=',
+                 self.partner_shipping_id.id),
+            ], limit=1)
+            if picking_type_dest_owned:
+                new_order.picking_type_id = picking_type_dest_owned
+            else:
+                new_order.picking_type_id = (
+                    dest_company.po_picking_type_id.warehouse_id.company_id ==
+                    dest_company and dest_company.po_picking_type_id or False)
         return new_order._convert_to_write(new_order._cache)
 
     @api.model
